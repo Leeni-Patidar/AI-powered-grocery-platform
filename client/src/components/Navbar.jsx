@@ -41,6 +41,7 @@ const Navbar = () => {
                 <NavLink to='/'>Home</NavLink>
                 <NavLink to='/products'>Product</NavLink>
                 {user && <NavLink to='/wishlist'>Wishlist</NavLink>}
+                {user?.role === 'admin' && <NavLink to='/admin/categories'>Categories</NavLink>}
                 <NavLink to='/'>Contact</NavLink>
 
                 <div className="hidden lg:flex items-center text-sm gap-2 border border-gray-300 px-3 rounded-full">
@@ -105,6 +106,9 @@ const Navbar = () => {
                             <NavLink to='/my-orders' onClick={() => setOpen(false)}>My Orders</NavLink>
                             <NavLink to='/wishlist' onClick={() => setOpen(false)}>Wishlist</NavLink>
                             <NavLink to='/recently-viewed' onClick={() => setOpen(false)}>Recently Viewed</NavLink>
+                            {user?.role === 'admin' && (
+                              <NavLink to='/admin/categories' onClick={() => setOpen(false)}>Categories</NavLink>
+                            )}
                         </>
                     )}
                     <NavLink to='/' onClick={() => setOpen(false)}>Contact</NavLink>

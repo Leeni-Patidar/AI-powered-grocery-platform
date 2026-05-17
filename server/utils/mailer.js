@@ -7,3 +7,8 @@ export const sendAuthLink = async ({ to, subject, url }) => {
   console.log(`[auth email] To: ${to}`);
   console.log(`[auth email] ${subject}: ${url}`);
 };
+
+export const sendOtpEmail = async ({ to, subject, otp }) => {
+  console.log(`[auth email] To: ${to}`);
+  console.log(`[auth email] ${subject}: OTP ${otp}`);
+};

@@ -23,6 +23,8 @@ const userSchema = new mongoose.Schema({
   emailVerificationExpires: { type: Date },
   passwordResetToken: { type: String },
   passwordResetExpires: { type: Date },
+  registrationOtp: { type: String },
+  registrationOtpExpires: { type: Date },
   refreshTokens: { type: [tokenSchema], default: [] },
   cartItems: { type: Object, default: {} },
   wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
@@ -30,6 +32,10 @@ const userSchema = new mongoose.Schema({
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
     viewedAt: { type: Date, default: Date.now },
   }],
+  referralCode: { type: String, unique: true, sparse: true },
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'user', default: null },
+  couponsUsed: [{ type: mongoose.Schema.Types.ObjectId, ref: 'coupon' }],
+  referralRewards: { type: Number, default: 0 },
 }, { minimize: false });
 
 const User = mongoose.models.user || mongoose.model('user', userSchema);

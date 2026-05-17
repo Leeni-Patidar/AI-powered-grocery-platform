@@ -11,7 +11,7 @@ import {
   signAccessToken,
   signRefreshToken,
 } from "../utils/authTokens.js";
-import { buildClientUrl, sendAuthLink } from "../utils/mailer.js";
+import { buildClientUrl, sendAuthLink, sendOtpEmail } from "../utils/mailer.js";
 
 const emailRegex = /\S+@\S+\.\S+/;
 
@@ -31,6 +31,21 @@ const createEmailVerification = async (user) => {
   });
 
   return { token, verificationUrl };
+};
+
+const createRegistrationOtp = async (user) => {
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  user.registrationOtp = hashToken(otp);
+  user.registrationOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+
+  await sendOtpEmail({
+    to: user.email,
+    subject: "Your grocery registration OTP",
+    otp,
+  });
+
+  return { otp };
 };
 
 const ensurePasswordLogin = (user) => user.password && user.authProvider !== "google";
@@ -90,16 +105,15 @@ export const register = async (req, res) => {
       isEmailVerified: false,
     });
 
-    const verification = await createEmailVerification(user);
+    const otpDetails = await createRegistrationOtp(user);
     await issueAuthSession(res, user);
 
     return res.json({
       success: true,
-      message: "Account created. Please verify your email.",
+      message: "Account created. Please verify your email with the OTP sent to your inbox.",
       user: publicUser(user),
       ...(process.env.NODE_ENV !== "production" && {
-        verificationToken: verification.token,
-        verificationUrl: verification.verificationUrl,
+        registrationOtp: otpDetails.otp,
       }),
     });
   } catch (error) {
@@ -121,6 +135,10 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email: normalizedEmail });
     if (!user || !ensurePasswordLogin(user)) {
       return res.json({ success: false, message: "Invalid email or password" });
+    }
+
+    if (!user.isEmailVerified) {
+      return res.json({ success: false, message: "Please verify your email before logging in." });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -254,10 +272,18 @@ export const verifyEmail = async (req, res) => {
       return res.json({ success: false, message: "Verification token is required" });
     }
 
-    const user = await User.findOne({
-      emailVerificationToken: hashToken(token),
-      emailVerificationExpires: { $gt: new Date() },
-    });
+    let user;
+    if (/^\d{6}$/.test(token)) {
+      user = await User.findOne({
+        registrationOtp: hashToken(token),
+        registrationOtpExpires: { $gt: new Date() },
+      });
+    } else {
+      user = await User.findOne({
+        emailVerificationToken: hashToken(token),
+        emailVerificationExpires: { $gt: new Date() },
+      });
+    }
 
     if (!user) {
       return res.json({ success: false, message: "Invalid or expired verification token" });
@@ -266,6 +292,8 @@ export const verifyEmail = async (req, res) => {
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
+    user.registrationOtp = undefined;
+    user.registrationOtpExpires = undefined;
     await user.save();
 
     return res.json({ success: true, message: "Email verified", user: publicUser(user) });
@@ -287,13 +315,12 @@ export const resendVerification = async (req, res) => {
       return res.json({ success: true, message: "Email is already verified" });
     }
 
-    const verification = await createEmailVerification(user);
+    const otpDetails = await createRegistrationOtp(user);
     return res.json({
       success: true,
-      message: "Verification email sent",
+      message: "Verification OTP sent",
       ...(process.env.NODE_ENV !== "production" && {
-        verificationToken: verification.token,
-        verificationUrl: verification.verificationUrl,
+        registrationOtp: otpDetails.otp,
       }),
     });
   } catch (error) {

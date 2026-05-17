@@ -30,6 +30,9 @@ const productSchema = new mongoose.Schema({
   ratingAverage: { type: Number, default: 0 },
   ratingCount: { type: Number, default: 0 },
   inStock: { type: Boolean, default: true },
+  totalStock: { type: Number, default: 0 },
+  lowStockThreshold: { type: Number, default: 10 },
+  isLowStock: { type: Boolean, default: false },
 }, { timestamps: true });
 
 productSchema.index({ category: 1, subcategory: 1, brand: 1 });
