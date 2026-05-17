@@ -8,12 +8,49 @@ import ProductCard from "../components/ProductCard"
 
 
 const ProductDetails = () => {
-    const { products, navigate, currency, addToCart } = useAppContext();
+    const {
+        products, navigate, currency, addToCart, axios, user, setShowUserLogin,
+        fetchProducts, wishlist, toggleWishlist, recentlyViewed, trackRecentlyViewed
+    } = useAppContext();
     const { id } = useParams();
     const [relatedProducts, setRelatedProducts] = useState([]);
     const [thumbnail, setThumbnail] = useState(null);
+    const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewComment, setReviewComment] = useState('');
 
     const product = products.find((item) => item._id === id);
+    const selectedVariant = product?.variants?.[selectedVariantIndex];
+    const displayPrice = selectedVariant?.price || product?.price;
+    const displayOfferPrice = selectedVariant?.offerPrice || product?.offerPrice;
+    const rating = Math.round(product?.ratingAverage || 0);
+    const isWishlisted = product ? wishlist.includes(product._id) : false;
+
+    const submitReview = async (event) => {
+        event.preventDefault();
+        if (!user) {
+            setShowUserLogin(true);
+            return;
+        }
+
+        try {
+            const { data } = await axios.post('/api/product/review', {
+                productId: product._id,
+                rating: reviewRating,
+                comment: reviewComment,
+            });
+
+            if (data.success) {
+                toast.success(data.message);
+                setReviewComment('');
+                fetchProducts();
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
 
 useEffect(() => {
     if (products.length > 0 && product) {
@@ -25,8 +62,14 @@ useEffect(() => {
 
     useEffect(() => {
         setThumbnail(product?.image[0] ? product.image[0] : null);
+        setSelectedVariantIndex(0);
     }, [product]);
 
+    useEffect(() => {
+        if (product?._id) {
+            trackRecentlyViewed(product._id);
+        }
+    }, [product?._id]);
 
 
 
@@ -57,19 +100,37 @@ useEffect(() => {
 
                 <div className="text-sm w-full md:w-1/2">
                     <h1 className="text-3xl font-medium">{product.name}</h1>
+                    <p className="text-gray-500 mt-1">{product.brand || 'Generic'}{product.subcategory ? ` / ${product.subcategory}` : ''}</p>
 
                     <div className="flex items-center gap-0.5 mt-1">
                         {Array(5).fill('').map((_, i) => (
-                            <img  key ={i} src={i < 4 ? assets.star_icon : assets.star_dull_icon} alt=" " className="md:w-4 w-3.5" />
+                            <img  key ={i} src={i < rating ? assets.star_icon : assets.star_dull_icon} alt=" " className="md:w-4 w-3.5" />
                         ))}
-                        <p className="text-base ml-2">(4)</p>
+                        <p className="text-base ml-2">({product.ratingCount || 0})</p>
                     </div>
 
                     <div className="mt-6">
-                        <p className="text-gray-500/70 line-through">MRP: {currency}{product.price}</p>
-                        <p className="text-2xl font-medium">MRP:{currency} {product.offerPrice}</p>
+                        <p className="text-gray-500/70 line-through">MRP: {currency}{displayPrice}</p>
+                        <p className="text-2xl font-medium">MRP:{currency} {displayOfferPrice}</p>
                         <span className="text-gray-500/70">(inclusive of all taxes)</span>
                     </div>
+
+                    {product.variants?.length > 0 && (
+                        <div className="mt-6">
+                            <p className="text-base font-medium mb-2">Variants</p>
+                            <div className="flex flex-wrap gap-2">
+                                {product.variants.map((variant, index) => (
+                                    <button
+                                        key={variant._id || index}
+                                        onClick={() => setSelectedVariantIndex(index)}
+                                        className={`px-3 py-2 border rounded text-sm ${selectedVariantIndex === index ? 'border-primary text-primary bg-primary/10' : 'border-gray-300'}`}
+                                    >
+                                        {variant.name}{variant.unit ? ` - ${variant.unit}` : ''}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <p className="text-base font-medium mt-6">About Product</p>
                     <ul className="list-disc ml-4 text-gray-500/70">
@@ -79,6 +140,9 @@ useEffect(() => {
                     </ul>
 
                     <div className="flex items-center mt-10 gap-4 text-base">
+                        <button onClick={() => toggleWishlist(product._id)} className="w-full py-3.5 cursor-pointer font-medium border border-primary text-primary hover:bg-primary/10 transition" >
+                            {isWishlisted ? 'Saved' : 'Wishlist'}
+                        </button>
                         <button onClick={() => addToCart(product._id)} className="w-full py-3.5 cursor-pointer font-medium bg-gray-100 text-gray-800/80 hover:bg-gray-200 transition" >
                             Add to Cart
                         </button>
@@ -88,6 +152,46 @@ useEffect(() => {
                     </div>
                 </div>
             </div>
+            <div className="mt-16 grid md:grid-cols-[1fr_320px] gap-8">
+                <div>
+                    <p className="text-2xl font-medium">Product Reviews</p>
+                    <div className="w-16 h-0.5 bg-primary rounded-full mt-1"></div>
+                    <div className="mt-5 space-y-4">
+                        {product.reviews?.length > 0 ? product.reviews.map((review) => (
+                            <div key={review._id} className="border border-gray-200 rounded p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <p className="font-medium">{review.name}</p>
+                                    <p className="text-primary">{review.rating}/5</p>
+                                </div>
+                                {review.comment && <p className="text-gray-600 mt-2">{review.comment}</p>}
+                            </div>
+                        )) : (
+                            <p className="text-gray-500 mt-4">No reviews yet.</p>
+                        )}
+                    </div>
+                </div>
+                <form onSubmit={submitReview} className="border border-gray-200 rounded p-4 h-max">
+                    <p className="font-medium">Write a Review</p>
+                    <select value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))} className="w-full mt-3 border border-gray-300 rounded px-3 py-2 outline-none">
+                        {[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} Stars</option>)}
+                    </select>
+                    <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={4} placeholder="Share your experience" className="w-full mt-3 border border-gray-300 rounded px-3 py-2 outline-none resize-none"></textarea>
+                    <button className="w-full mt-3 py-2.5 bg-primary text-white rounded">Submit Review</button>
+                </form>
+            </div>
+            {recentlyViewed.filter((item) => item._id !== product._id).length > 0 && (
+                <div className="flex flex-col items-center mt-20">
+                    <div className="flex flex-col item-center w-max">
+                        <p className="text-3xl font-medium">Recently Viewed</p>
+                        <div className="w-20 h-0.5 bg-primary rounded-full mt-2"></div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-6 lg:grid-cols-5 mt-6 w-full">
+                        {recentlyViewed.filter((item) => item._id !== product._id).slice(0, 5).map((product) => (
+                            <ProductCard key={product._id} product={product}/>
+                        ))}
+                    </div>
+                </div>
+            )}
             {/* related product */}
             <div className="flex flex-col items-center mt-20">
                 <div className="flex flex-col item-center w-max">

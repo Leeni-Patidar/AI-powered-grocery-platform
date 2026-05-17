@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema({
   passwordResetExpires: { type: Date },
   refreshTokens: { type: [tokenSchema], default: [] },
   cartItems: { type: Object, default: {} },
+  wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+  recentlyViewed: [{
+    product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+    viewedAt: { type: Date, default: Date.now },
+  }],
 }, { minimize: false });
 
 const User = mongoose.models.user || mongoose.model('user', userSchema);

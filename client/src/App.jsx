@@ -17,6 +17,8 @@ import SellerLayout from './pages/seller/SellerLayout';
 import ProductList from './pages/seller/ProductList';
 import Orders from './pages/seller/Orders';
 import AddProduct from './pages/seller/AddProduct';
+import Wishlist from './pages/Wishlist';
+import RecentlyViewed from './pages/RecentlyViewed';
 
 const App = () => {
   const location = useLocation();
@@ -44,6 +46,8 @@ const App = () => {
           <Route path='/cart' element={<Card />} />
           <Route path='/add-address' element={<AddAddress />} />
           <Route path='/my-orders' element={<MyOrders />} />
+          <Route path='/wishlist' element={<Wishlist />} />
+          <Route path='/recently-viewed' element={<RecentlyViewed />} />
           <Route path='/verify-email' element={<Home />} />
           <Route path='/reset-password' element={<Home />} />
 

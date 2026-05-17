@@ -25,6 +25,8 @@ export const publicUser = (user) => ({
   role: user.role,
   isEmailVerified: user.isEmailVerified,
   cartItems: user.cartItems,
+  wishlist: user.wishlist || [],
+  recentlyViewed: user.recentlyViewed || [],
 });
 
 export const signAccessToken = (user) =>

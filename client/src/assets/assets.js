@@ -153,9 +153,9 @@ export const categories = [
   },
   {
     section: "Grocery & Kitchen",
-    text: "Kitchenware & Appliances",
-    path: "Kitchenware",
-    image: bottles_image,
+    text: "Indian spices & Masalas",
+    path: "Spices",
+    image: basmati_rice_image,
     bgColor: "#EAF8F7",
   },
   {
