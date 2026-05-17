@@ -10,6 +10,14 @@ import productRouter from './routes/productRoute.js';
 import cartRouter from './routes/cartRoute.js';
 import addressRouter from './routes/addressRoute.js';
 import orderRouter from './routes/orderRoute.js';
+import {
+  apiLimiter,
+  csrfProtection,
+  csrfTokenHandler,
+  mongoSanitize,
+  securityHeaders,
+  xssProtection,
+} from './middlewares/security.js';
 
 
 
@@ -20,12 +28,22 @@ await connectCloudinary();
 
 
 //Allow multiple origin
-const allowedOrigins=['http://localhost:5173']
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 //Middleware configuration
+app.set('trust proxy', 1);
+app.use(securityHeaders);
+app.use(apiLimiter);
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({origin: allowedOrigins, credentials:true}));
+app.get('/api/csrf-token', csrfTokenHandler);
+app.use(csrfProtection);
+app.use(mongoSanitize);
+app.use(xssProtection);
 
 app.get('/', (req, res) => res.send("API is Working"));
 app.use('/api/user',userRouter)

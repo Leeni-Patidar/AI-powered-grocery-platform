@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
@@ -20,7 +21,13 @@ import AddProduct from './pages/seller/AddProduct';
 const App = () => {
   const location = useLocation();
   const isSellerPath = location.pathname.includes("seller");
-  const { ShowUserLogin, isSeller } = useAppContext();
+  const { ShowUserLogin, isSeller, setShowUserLogin } = useAppContext();
+
+  useEffect(() => {
+    if (location.pathname === "/verify-email" || location.pathname === "/reset-password") {
+      setShowUserLogin(true);
+    }
+  }, [location.pathname, setShowUserLogin]);
 
   return (
     <div className='text-default min-h-screen text-gray-700 bg-white'>
@@ -37,6 +44,8 @@ const App = () => {
           <Route path='/cart' element={<Card />} />
           <Route path='/add-address' element={<AddAddress />} />
           <Route path='/my-orders' element={<MyOrders />} />
+          <Route path='/verify-email' element={<Home />} />
+          <Route path='/reset-password' element={<Home />} />
 
           {/* Seller Route Handling */}
           <Route

@@ -7,6 +7,65 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
+let csrfToken;
+let csrfTokenRequest;
+
+const getCsrfToken = async () => {
+    if (csrfToken) return csrfToken;
+
+    if (!csrfTokenRequest) {
+        csrfTokenRequest = axios
+            .get('/api/csrf-token', { skipCsrfToken: true })
+            .then(({ data }) => {
+                csrfToken = data.csrfToken;
+                return csrfToken;
+            })
+            .finally(() => {
+                csrfTokenRequest = null;
+            });
+    }
+
+    return csrfTokenRequest;
+};
+
+axios.interceptors.request.use(async (config) => {
+    if (config.skipCsrfToken) return config;
+
+    const method = (config.method || 'get').toUpperCase();
+    const url = config.url || '';
+    const shouldAttachCsrf =
+        ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) || url.endsWith('/logout');
+
+    if (shouldAttachCsrf) {
+        config.headers = config.headers || {};
+        config.headers['X-CSRF-Token'] = await getCsrfToken();
+    }
+
+    return config;
+});
+
+axios.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (
+            error.response?.status === 403 &&
+            error.response?.data?.code === 'CSRF_TOKEN_INVALID' &&
+            originalRequest &&
+            !originalRequest._csrfRetry
+        ) {
+            originalRequest._csrfRetry = true;
+            csrfToken = null;
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers['X-CSRF-Token'] = await getCsrfToken();
+            return axios(originalRequest);
+        }
+
+        return Promise.reject(error);
+    }
+);
+
 export const AppContext = createContext();
 export const AppContextProvider = ({ children }) => {
 
@@ -41,9 +100,10 @@ export const AppContextProvider = ({ children }) => {
             const { data } = await axios.get('/api/user/is-auth');
             if (data.success) {
                 setUser(data.user)
+                setCartItems(data.user.cartItems || {})
             } else {
-                setIsSeller(false)
-                setCartItems(data.user.cartItems)
+                setUser(null)
+                setCartItems({})
             }
         } catch (error) {
             setUser(null)
