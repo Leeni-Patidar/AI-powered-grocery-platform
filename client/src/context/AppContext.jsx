@@ -78,6 +78,7 @@ export const AppContextProvider = ({ children }) => {
     const [wishlist, setWishlist] = useState([])
     const [recentlyViewed, setRecentlyViewed] = useState([])
     const [productFilters, setProductFilters] = useState({ categories: [], subcategories: [], brands: [] })
+    const [dbCategories, setDbCategories] = useState([])
     const [searchQuery, setSearchQuery] = useState('')
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
 
@@ -145,6 +146,17 @@ export const AppContextProvider = ({ children }) => {
             }
         } catch (error) {
             toast.error(error.message)
+        }
+    }
+
+    const fetchDbCategories = async () => {
+        try {
+            const { data } = await axios.get('/api/category/list')
+            if (data.success) {
+                setDbCategories(data.categories || [])
+            }
+        } catch (error) {
+            toast.error(error.message || 'Unable to load categories')
         }
     }
 
@@ -258,6 +270,7 @@ export const AppContextProvider = ({ children }) => {
     useEffect(() => {
         fetchProducts()
         fetchProductFilters()
+        fetchDbCategories()
         fetchSeller()
         fetchUser()
     }, [])
@@ -299,13 +312,36 @@ if (user) {
 }, [cartItems])
 
 const value = {
-    navigate, user, setUser, setIsSeller, isSeller, ShowUserLogin, setShowUserLogin,
-    products, productFilters, wishlist, recentlyViewed, currency, addToCart,
-    updateCartItem, removeFromCart, cartItems, searchQuery, debouncedSearchQuery, setSearchQuery,
-    getCartCount, getCartAmount, axios, fetchProducts, fetchWishlist,
-    toggleWishlist, fetchRecentlyViewed, trackRecentlyViewed, setCartItems
+    navigate,
+    user,
+    setUser,
+    setIsSeller,
+    isSeller,
+    ShowUserLogin,
+    setShowUserLogin,
+    products,
+    productFilters,
+    dbCategories,
+    wishlist,
+    recentlyViewed,
+    currency,
+    addToCart,
+    updateCartItem,
+    removeFromCart,
+    cartItems,
+    getCartCount,
+    getCartAmount,
+    searchQuery,
+    debouncedSearchQuery,
+    setSearchQuery,
+    axios,
+    fetchProducts,
+    fetchWishlist,
+    toggleWishlist,
+    fetchRecentlyViewed,
+    trackRecentlyViewed,
+    setCartItems,
 }
-
 
 return <AppContext.Provider value={value}>
     {children}

@@ -1,11 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useParams } from 'react-router-dom';
-import { categories } from '../assets/assets';
 import ProductCard from '../components/ProductCard';
 
+const slugify = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 const ProductCategory = () => {
-  const { products, productFilters } = useAppContext(); 
+  const { products, productFilters, dbCategories } = useAppContext(); 
   const { category } = useParams();
   const [selectedSubcategory, setSelectedSubcategory] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('');
@@ -13,15 +19,15 @@ const ProductCategory = () => {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const searchCategory = categories.find(
-    (item) => item.path.toLowerCase() === category
+  const searchCategory = dbCategories.find(
+    (item) => slugify(item.name) === category || item.slug === category
   );
 
   const filteredProducts = useMemo(() => {
     const filtered = products.filter(
       (product) =>
         product.inStock &&
-        product.category.toLowerCase() === category &&
+        slugify(product.category) === category &&
         (!selectedSubcategory || product.subcategory === selectedSubcategory) &&
         (!selectedBrand || product.brand === selectedBrand)
     );

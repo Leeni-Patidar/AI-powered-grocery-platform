@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { assets, categories } from '../../assets/assets';
+import { assets, categories as assetCategories } from '../../assets/assets';
 import toast from "react-hot-toast";
 import { useAppContext } from "../../context/AppContext";
 
@@ -15,7 +15,7 @@ const AddProduct = () => {
   const [price, setPrice] = useState('');
   const [offerPrice, setOfferPrice] = useState('');
   const [variants, setVariants] = useState([{ name: '', unit: '', price: '', offerPrice: '', stock: '' }]);
-  const {axios} = useAppContext()
+  const {axios, dbCategories} = useAppContext()
 
   const updateVariant = (index, field, value) => {
     const updatedVariants = [...variants];
@@ -123,8 +123,8 @@ const AddProduct = () => {
             className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
           >
             <option value="">Select Category</option>
-            {categories.map((item, index) => (
-              <option key={index} value={item.path}>{item.path}</option>
+            {(dbCategories.length ? dbCategories.map((item) => item.name) : assetCategories.map((item) => item.path)).map((categoryName, index) => (
+              <option key={index} value={categoryName}>{categoryName}</option>
             ))}
           </select>
         </div>
